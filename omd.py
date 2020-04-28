@@ -1,8 +1,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
-
+    
 class omd:
     def __init__(self, dim, eta):
+        self.dim = dim
         self.x_t = (1.0/dim)*np.ones([dim])
         self.t = 0
         self.eta = eta
@@ -12,12 +13,19 @@ class omd:
         self.t = self.t + 1
 
         # compute numerator
-        self.x_t = self.x_t*np.exp(-1*self.eta*loss_grad)
+        y_t = self.x_t*np.exp(-1*self.eta*(loss_grad))
 
         # compute denominator
-        normalizer = np.sum(np.abs(self.x_t))
-        self.x_t = self.x_t/normalizer
+        normalizer = np.sum(np.abs(y_t))
+        self.x_t = y_t/normalizer
 
+        # eta2 = 0.8
+        # gd = gradient_descent(self.dim, eta2)
+        # x = gd.x_t
+        # for t in range(0,T):
+        #     loss_grad2 = grad_loss(x,y_t, "kl")
+        #     x = gd.step(loss_grad2)
+        # self.x_t = x
         return self.x_t
 
 def generate_simplex(dim):
@@ -26,7 +34,7 @@ def generate_simplex(dim):
 
 def loss(x,y, l="l2"):
     if l == "l2":
-        return np.linalg.norm(x-y)
+        return 0.5*np.linalg.norm(x-y)
     elif l == "l1":
         return np.sum(np.abs(x-y))
     elif l == "kl":
@@ -39,15 +47,12 @@ def grad_loss(x,y, l="l2"):
     if l == "l1":
         return np.sum(np.sign(x-y))
     elif l == "kl":
-        return np.divide(x,y)+np.log(np.divide(x,y))
-
-def obj_func(x):
-    return x**2
+        return np.ones(x.shape) - np.divide(y,x)#np.divide(x,y)+np.log(np.divide(x,y))
 
 if __name__ == "__main__":
     dim = 5          # dimension
-    eta = 0.9                   # stepsize
-    T = 500                     # number of steps
+    eta = 0.1                   # stepsize
+    T = 700                     # number of steps
     losses = np.zeros([T,1])    # loss values placeholder
     threshold = 0.0001          # convergence threshold
     loss_func = "kl"                    # choose loss function
@@ -63,6 +68,7 @@ if __name__ == "__main__":
     print("initialization: ", x_t)
 
     for t in range(0,T):
+        #print(x_t)
         x_t = online_md.step(grad_loss(x_t, p, loss_func))
         loss_t = loss(x_t, p, loss_func)
         losses[t] = loss_t
