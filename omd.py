@@ -19,13 +19,6 @@ class omd:
         normalizer = np.sum(np.abs(y_t))
         self.x_t = y_t/normalizer
 
-        # eta2 = 0.8
-        # gd = gradient_descent(self.dim, eta2)
-        # x = gd.x_t
-        # for t in range(0,T):
-        #     loss_grad2 = grad_loss(x,y_t, "kl")
-        #     x = gd.step(loss_grad2)
-        # self.x_t = x
         return self.x_t
 
 def generate_simplex(dim):
@@ -40,14 +33,18 @@ def loss(x,y, l="l2"):
     elif l == "kl":
         # sum over the support of y
         return np.sum(np.where(x != 0,(x-y) * np.log(x / y), 0))
+    elif l == "linear":
+        return np.sum(x-y)
 
 def grad_loss(x,y, l="l2"):
     if l == "l2":
         return x - y
-    if l == "l1":
+    elif l == "l1":
         return np.sum(np.sign(x-y))
     elif l == "kl":
         return np.ones(x.shape) - np.divide(y,x)#np.divide(x,y)+np.log(np.divide(x,y))
+    elif l == "linear":
+        return -1*x.shape[0]
 
 if __name__ == "__main__":
     dim = 5          # dimension
@@ -55,17 +52,16 @@ if __name__ == "__main__":
     T = 700                     # number of steps
     losses = np.zeros([T,1])    # loss values placeholder
     threshold = 0.0001          # convergence threshold
-    loss_func = "kl"                    # choose loss function
+    loss_func = "linear"                    # choose loss function
 
     p = generate_simplex(dim)
     # p = np.array([0.19775466, 0.16387309, 0.22701363, 0.10678895, 0.30456967])
     # p = p.T
-    print("objective simplex: ", p)
 
     online_md = omd(dim, eta)
     # determine initial value
-    x_t = online_md.x_t
-    print("initialization: ", x_t)
+    x_init = online_md.x_t
+    x_t = x_init
 
     for t in range(0,T):
         #print(x_t)
@@ -74,7 +70,8 @@ if __name__ == "__main__":
         losses[t] = loss_t
         
         # check for convergence
-        if np.abs(x_t - p).all() < threshold:
+        norm_dist = np.linalg.norm(p - x_t)
+        if norm_dist < threshold:
             print("solution converged at iter ", t)
             break
     
@@ -83,5 +80,8 @@ if __name__ == "__main__":
     plt.xlabel("iter")
     plt.savefig("plots/losses.png")
 
-    print("learned simplex: ", x_t)
+    print("initialization:\t\t", x_init)
+    print("objective simplex:\t", p)
+    print("learned simplex:\t", x_t)
+    print("norm distance: ", norm_dist)
 
